@@ -9,7 +9,7 @@ const [error, setError] = useState("");
 
 async function startScan() {
   if (!domain.trim()) {
-    setError("Please enter a domain.");
+    setError("Please enter a domain...");
     return;
   }
 
@@ -33,7 +33,7 @@ async function startScan() {
 
     setResult(data);
   } catch (err) {
-    setError("Unable to connect to SecureCheck backend.");
+    setError("Unable to connect to Vigilez backend.");
   } finally {
     setLoading(false);
   }
@@ -45,12 +45,23 @@ async function startScan() {
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            SecureCheck
+            Vigilez
           </h1>
 
-          <button className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-            Scan History
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/login"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            >
+              Login
+            </a>
+            <a
+              href="/signup"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Sign up
+            </a>
+          </div>
         </div>
       </header>
 
@@ -61,11 +72,11 @@ async function startScan() {
         </div>
 
         <h2 className="max-w-3xl text-5xl font-bold tracking-tight text-gray-900">
-          Check your website security in seconds
+          Keep your website protected and always audit-ready
         </h2>
 
         <p className="mt-6 max-w-2xl text-lg text-gray-600">
-          SecureCheck scans your website for common security issues and
+          Vigilez scans your website for common security issues and
           provides clear findings, risk severity, and recommendations.
         </p>
 
@@ -73,10 +84,17 @@ async function startScan() {
         <div className="mt-10 flex w-full max-w-2xl gap-3">
           <input
             type="text"
-            placeholder="example.com"
+            placeholder={error === "Please enter a domain..." ? error : "example.com"}
             value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            onChange={(e) => {
+              setDomain(e.target.value);
+              if (error === "Please enter a domain...") setError("");
+            }}
+            className={`flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${
+              error === "Please enter a domain..."
+                ? "placeholder:text-red-600"
+                : "placeholder:text-gray-400"
+            }`}
           />
 
           <button
@@ -88,16 +106,16 @@ async function startScan() {
           </button>
         </div>
 
+        {error && error !== "Please enter a domain..." && (
+          <p className="mt-3 w-full max-w-2xl text-left text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
         <p className="mt-4 text-sm text-gray-500">
           No installation required. Enter your website domain to begin.
         </p>
       </section>
-
-      {error && (
-        <p className="mt-4 text-sm text-red-600">
-          {error}
-        </p>
-      )}
 
       {result && (
         <div className="mt-10 w-full max-w-5xl text-left">

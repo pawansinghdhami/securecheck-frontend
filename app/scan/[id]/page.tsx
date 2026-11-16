@@ -196,7 +196,7 @@ export default function ScanDetailsPage({
             href="/"
             className="text-2xl font-bold text-gray-900"
           >
-            SecureCheck
+            Vigilez
           </a>
 
           <a

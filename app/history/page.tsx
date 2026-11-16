@@ -40,7 +40,7 @@ export default function HistoryPage() {
 
       setScans(data);
     } catch (err) {
-      setError("Unable to connect to SecureCheck backend.");
+      setError("Unable to connect to Vigilez backend.");
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export default function HistoryPage() {
             href="/"
             className="text-2xl font-bold text-gray-900"
           >
-            SecureCheck
+            Vigilez
           </a>
 
           <span className="text-sm font-medium text-gray-500">

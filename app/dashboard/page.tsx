@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+type DateFilter = "all" | "7" | "30";
 import {
   LineChart,
   Line,
@@ -57,36 +59,45 @@ type DashboardData = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedDomain, setSelectedDomain] = useState("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    async function loadDashboard() {
+      setLoading(true);
+      setError("");
 
-  async function loadDashboard() {
-    setLoading(true);
-    setError("");
+      try {
+        const response = await fetch(
+          "http://localhost:8000/dashboard",
+          { credentials: "include" }
+        );
 
-    try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/dashboard"
-      );
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
 
-      if (!response.ok) {
-        throw new Error("Failed to load dashboard");
+        if (!response.ok) {
+          throw new Error("Failed to load dashboard");
+        }
+
+        const data = await response.json();
+
+        setDashboard(data);
+      } catch {
+        setError("Unable to connect to Vigilez backend.");
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-
-      setDashboard(data);
-    } catch (err) {
-      setError("Unable to connect to SecureCheck backend.");
-    } finally {
-      setLoading(false);
     }
-  }
+
+    void loadDashboard();
+  }, [router]);
 
   function formatDate(date: string) {
     return new Date(date).toLocaleString();
@@ -101,7 +112,7 @@ export default function DashboardPage() {
               href="/"
               className="text-2xl font-bold text-gray-900"
             >
-              SecureCheck
+              Vigilez
             </a>
           </div>
         </header>
@@ -124,7 +135,7 @@ export default function DashboardPage() {
               href="/"
               className="text-2xl font-bold text-gray-900"
             >
-              SecureCheck
+              Vigilez
             </a>
           </div>
         </header>
@@ -142,6 +153,31 @@ export default function DashboardPage() {
 
   const latestScan = dashboard.latest_scan;
 
+  const filteredScoreTrend = dashboard.score_trend.filter((scan) => {
+    // Domain filter
+    if (
+      selectedDomain !== "all" &&
+      scan.domain !== selectedDomain
+    ) {
+      return false;
+    }
+
+    // Date filter
+    if (dateFilter === "all") {
+      return true;
+    }
+
+    const scanDate = new Date(scan.created_dtm);
+    const now = new Date();
+
+    const days = Number(dateFilter);
+
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - days);
+    
+    return scanDate >= startDate;
+  });
+
   return (
     <main className="min-h-screen bg-gray-50">
 
@@ -154,14 +190,14 @@ export default function DashboardPage() {
             href="/"
             className="text-2xl font-bold text-gray-900"
           >
-            SecureCheck
+            Vigilez
           </a>
 
           <div className="flex items-center gap-6">
 
             <a
               href="/"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               New Scan
             </a>
@@ -188,12 +224,12 @@ export default function DashboardPage() {
       <section className="mx-auto max-w-6xl px-6 py-12">
 
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">
             Security Dashboard
           </h2>
 
           <p className="mt-2 text-gray-600">
-            Overview of your website security scans.
+            Monitor website security, review scan history, and track score changes.
           </p>
         </div>
 
@@ -325,66 +361,148 @@ export default function DashboardPage() {
 
         {/* Score Trend */}
 
-        {/* Score Trend */}
+      <section className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
-        <section className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 
-        <h3 className="text-xl font-bold text-gray-900">
-            Score Trend
-        </h3>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Score Trend
+            </h3>
 
-        <p className="mt-1 text-sm text-gray-500">
-            Security scores from the latest scans.
-        </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Track security scores across your scans.
+            </p>
+          </div>
+
+          {/* Filters */}
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+
+            {/* Domain */}
+
+            <select
+              value={selectedDomain}
+              onChange={(e) => setSelectedDomain(e.target.value)}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            >
+
+              <option value="all">
+                All Domains
+              </option>
+
+              {dashboard.domains.map((domain) => (
+                <option
+                  key={domain.domain}
+                  value={domain.domain}
+                >
+                  {domain.domain}
+                </option>
+              ))}
+
+            </select>
+
+
+            {/* Date */}
+
+            <select
+              value={dateFilter}
+              onChange={(e) =>
+                setDateFilter(e.target.value as DateFilter)
+              }
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            >
+
+              <option value="all">
+                All Time
+              </option>
+
+              <option value="7">
+                Last 7 Days
+              </option>
+
+              <option value="30">
+                Last 30 Days
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        {/* Chart */}
 
         <div className="mt-6 h-80 w-full">
 
-            <ResponsiveContainer width="100%" height="100%">
+          {filteredScoreTrend.length === 0 ? (
 
-            <LineChart
-                data={dashboard.score_trend}
-                margin={{
-                top: 10,
-                right: 20,
-                left: 0,
-                bottom: 10,
-                }}
+            <div className="flex h-full items-center justify-center rounded-lg bg-gray-50">
+
+              <p className="text-sm text-gray-500">
+                No scan data available for the selected filters.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
             >
+
+              <LineChart
+                data={filteredScoreTrend}
+                margin={{
+                  top: 10,
+                  right: 20,
+                  left: 0,
+                  bottom: 10,
+                }}
+              >
 
                 <CartesianGrid strokeDasharray="3 3" />
 
                 <XAxis
-                dataKey="id"
-                tickFormatter={(value) => `#${value}`}
+                  dataKey="id"
+                  tickFormatter={(value) => `#${value}`}
                 />
 
                 <YAxis
-                domain={[0, 100]}
-                tickCount={6}
+                  domain={[0, 100]}
+                  tickCount={6}
                 />
 
                 <Tooltip
-                formatter={(value) => [`${value}/100`, "Security Score"]}
-                labelFormatter={(label) => `Scan #${label}`}
+                  formatter={(value) => [
+                    `${value}/100`,
+                    "Security Score",
+                  ]}
+                  labelFormatter={(label) =>
+                    `Scan #${label}`
+                  }
                 />
 
                 <Line
-                type="monotone"
-                dataKey="score"
-                stroke="#2563eb"
-                strokeWidth={3}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
 
-            </LineChart>
+              </LineChart>
 
             </ResponsiveContainer>
 
+          )}
+
         </div>
 
-        </section>
-
+      </section>
 
         {/* Domains */}
 
@@ -397,7 +515,7 @@ export default function DashboardPage() {
             </h3>
 
             <p className="mt-1 text-sm text-gray-500">
-              Overview of domains scanned by SecureCheck.
+              Overview of domains scanned by Vigilez.
             </p>
 
           </div>
@@ -483,7 +601,7 @@ export default function DashboardPage() {
                 </h3>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Latest security scans performed by SecureCheck.
+                  Latest security scans performed by Vigilez.
                 </p>
 
               </div>
@@ -616,8 +734,7 @@ function DashboardCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <p className="text-sm font-medium text-gray-500">
         {label}
       </p>
@@ -625,7 +742,6 @@ function DashboardCard({
       <p className="mt-2 truncate text-2xl font-bold text-gray-900">
         {value}
       </p>
-
     </div>
   );
 }
